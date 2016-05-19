@@ -1,12 +1,12 @@
-import akka.http.scaladsl.testkit.ScalatestRouteTest
-import akka.http.scaladsl.server.Directives._
-import spray.json.DefaultJsonProtocol
 import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.{FlatSpec, Matchers}
+import spray.json.DefaultJsonProtocol
 
 trait Api extends DefaultJsonProtocol {
 
-  val routes = {
+  val routeRootThenABC = {
     path("" | "abc") {
       get {
         complete {
@@ -16,8 +16,28 @@ trait Api extends DefaultJsonProtocol {
     }
   }
 
-  val routesReversed = {
+  val routeABCThenRoot = {
     path("abc" | "") {
+      get {
+        complete {
+          OK
+        }
+      }
+    }
+  }
+
+  val routeABCThenDEF = {
+    path("abc" | "def") {
+      get {
+        complete {
+          OK
+        }
+      }
+    }
+  }
+
+  val routeDEFThenABC = {
+    path("def" | "abc") {
       get {
         complete {
           OK
@@ -28,22 +48,51 @@ trait Api extends DefaultJsonProtocol {
 }
 
 class ASpec extends FlatSpec with ScalatestRouteTest with Matchers with Api {
-  "routing" should "work OK" in {
-    Get("/abc") ~> routes ~> check { //////////// This test fails
+  """
+    |routing "" | "abc"
+  """.stripMargin should "work OK" in {
+    Get("/abc") ~> routeRootThenABC ~> check {
+      //////////// This test fails
       response.status shouldBe OK
     }
 
-    Get("/") ~> routes ~> check {
+    Get("/") ~> routeRootThenABC ~> check {
       response.status shouldBe OK
     }
   }
 
-  "routing - reversed" should "work OK" in {
-    Get("/abc") ~> routesReversed ~> check {
+  """
+    |routing "abc" | ""
+  """.stripMargin should "work OK" in {
+    Get("/abc") ~> routeABCThenRoot ~> check {
       response.status shouldBe OK
     }
 
-    Get("/") ~> routesReversed ~> check {
+    Get("/") ~> routeABCThenRoot ~> check {
+      response.status shouldBe OK
+    }
+  }
+
+  """
+    |routing "abc" | "def"
+  """.stripMargin should "work OK" in {
+    Get("/abc") ~> routeABCThenDEF ~> check {
+      response.status shouldBe OK
+    }
+
+    Get("/def") ~> routeABCThenDEF ~> check {
+      response.status shouldBe OK
+    }
+  }
+
+  """
+    |routing "def" | "abc"
+  """.stripMargin should "work OK" in {
+    Get("/abc") ~> routeDEFThenABC ~> check {
+      response.status shouldBe OK
+    }
+
+    Get("/def") ~> routeDEFThenABC ~> check {
       response.status shouldBe OK
     }
   }
